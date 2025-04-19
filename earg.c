@@ -21,8 +21,8 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <elog.h>
 
-#include "config.h"
 #include "earg.h"
 #include "state.h"
 #include "toolbox.h"
@@ -30,57 +30,56 @@
 #include "arghint.h"
 #include "command.h"
 #include "option.h"
-#include "help.h"
 #include "optiondb.h"
 #include "tokenizer.h"
 
 
 #define TRYHELP(s) \
     PERR("Try `"); \
-    cmdstack_print(STDERR_FILENO, &(s)->cmdstack); \
+    cmdstack_print(stderr, &(s)->cmdstack); \
     PERR(" --help' or `"); \
-    cmdstack_print(STDERR_FILENO, &(s)->cmdstack); \
+    cmdstack_print(stderr, &(s)->cmdstack); \
     PERR(" --usage' for more information.\n")
 
 #define REJECT_OPTION_MISSINGARGUMENT(s, o) \
-    cmdstack_print(STDERR_FILENO, &(s)->cmdstack); \
+    cmdstack_print(stderr, &(s)->cmdstack); \
     PERR(": option requires an argument -- '"); \
-    option_print(STDERR_FILENO, o); \
+    option_print(stderr, o); \
     PERR("'\n")
 
 #define REJECT_OPTION_HASARGUMENT(s, o) \
-    cmdstack_print(STDERR_FILENO, &(s)->cmdstack); \
+    cmdstack_print(stderr, &(s)->cmdstack); \
     PERR(": no argument allowed for option -- '"); \
-    option_print(STDERR_FILENO, o); \
+    option_print(stderr, o); \
     PERR("'\n")
 
 #define REJECT_OPTION_UNRECOGNIZED(s, name, len) \
-    cmdstack_print(STDERR_FILENO, &(s)->cmdstack); \
+    cmdstack_print(stderr, &(s)->cmdstack); \
     PERR(": invalid option -- '%s%.*s'\n", \
         len == 1? "-": "", len, name)
 
 #define REJECT_OPTION_NOTEATEN(s, o) \
-    cmdstack_print(STDERR_FILENO, &(s)->cmdstack); \
+    cmdstack_print(stderr, &(s)->cmdstack); \
     PERR(": option not eaten -- '"); \
-    option_print(STDERR_FILENO, o); \
+    option_print(stderr, o); \
     PERR("'\n")
 
 #define REJECT_OPTION_REDUNDANT(s, o) \
-    cmdstack_print(STDERR_FILENO, &(s)->cmdstack); \
+    cmdstack_print(stderr, &(s)->cmdstack); \
     PERR(": redundant option -- '"); \
-    option_print(STDERR_FILENO, o); \
+    option_print(stderr, o); \
     PERR("'\n")
 
 #define REJECT_POSITIONAL_NOTEATEN(s, t) \
-    cmdstack_print(STDERR_FILENO, &(s)->cmdstack); \
+    cmdstack_print(stderr, &(s)->cmdstack); \
     PERR(": argument not eaten -- '%s'\n", t)
 
 #define REJECT_POSITIONAL(s, t) \
-    cmdstack_print(STDERR_FILENO, &(s)->cmdstack); \
+    cmdstack_print(stderr, &(s)->cmdstack); \
     PERR(": invalid argument -- '%s'\n", t)
 
 #define REJECT_POSITIONALCOUNT(s) \
-    cmdstack_print(STDERR_FILENO, &(s)->cmdstack); \
+    cmdstack_print(stderr, &(s)->cmdstack); \
     PERR(": invalid positional arguments count\n")
 
 
@@ -105,7 +104,6 @@ _build_optiondb(const struct earg *c, struct optiondb *db) {
         return -1;
     }
 
-#ifdef CONFIG_EARG_USE_ELOG
     if (!HASFLAG(c, EARG_NOELOG)) {
         if (optiondb_insert(db, &opt_verbosity, (struct earg_command *)c)) {
             return -1;
@@ -117,60 +115,53 @@ _build_optiondb(const struct earg *c, struct optiondb *db) {
             return -1;
         }
     }
-#endif
 
     return 0;
 }
 
 
-#ifdef CONFIG_EARG_USE_CLOG
-
-#include <clog.h>
-
-
 void
-_clogquieter() {
-    if (clog_verbosity > CLOG_SILENT) {
-        clog_verbosity--;
+_elogquieter() {
+    if (elog_verbosity > ELOG_SILENT) {
+        elog_verbosity--;
     }
 }
 
 
 void
-_clogverboser() {
-    if (clog_verbosity < CLOG_DEBUG2) {
-        clog_verbosity++;
+_elogverboser() {
+    if (elog_verbosity < ELOG_DEBUG) {
+        elog_verbosity++;
     }
 }
 
 void
-_clogverbosity(const char *value) {
+_elogverbosity(const char *value) {
     int valuelen = value? strlen(value): 0;
 
     if (valuelen == 0) {
-        clog_verbosity = CLOG_INFO;
+        elog_verbosity = ELOG_INFO;
         return;
     }
 
     if (valuelen == 1) {
         if (ISDIGIT(value[0])) {
             /* -v0 ... -v5 */
-            clog_verbosity = atoi(value);
-            if (!BETWEEN(clog_verbosity, CLOG_SILENT, CLOG_DEBUG2)) {
-                clog_verbosity = CLOG_INFO;
+            elog_verbosity = atoi(value);
+            if (!BETWEEN(elog_verbosity, ELOG_SILENT, ELOG_DEBUG)) {
+                elog_verbosity = ELOG_INFO;
                 return;
             }
             return;
         }
     }
 
-    clog_verbosity = clog_verbosity_from_string(value);
-    if (clog_verbosity == CLOG_UNKNOWN) {
-        clog_verbosity = CLOG_INFO;
+    elog_verbosity = elog_verbosity_from_string(value);
+    if (elog_verbosity == ELOG_UNKNOWN) {
+        elog_verbosity = ELOG_INFO;
         return;
     }
 }
-#endif
 
 
 static enum earg_eatstatus
@@ -183,33 +174,31 @@ _eat(const struct earg *c, const struct earg_command *command,
     }
 
     if ((!HASFLAG(c, EARG_NOHELP)) && (opt == &opt_help)) {
-        earg_help_print(c);
+        earg_help_print(stdout, c);
         return EARG_EAT_OK_EXIT;
     }
 
     if ((!HASFLAG(c, EARG_NOUSAGE)) && (opt == &opt_usage)) {
-        earg_usage_print(c);
+        earg_usage_print(stdout, c);
         return EARG_EAT_OK_EXIT;
     }
 
-#ifdef CONFIG_EARG_USE_CLOG
     if (!HASFLAG(c, EARG_NOELOG)) {
         if (opt == &opt_verbosity) {
-            _clogverbosity(value);
+            _elogverbosity(value);
             return EARG_EAT_OK;
         }
 
         if (opt == &opt_verboseflag) {
-            _clogverboser();
+            _elogverboser();
             return EARG_EAT_OK;
         }
 
         if (opt == &opt_quietflag) {
-            _clogquieter();
+            _elogquieter();
             return EARG_EAT_OK;
         }
     }
-#endif
 
     if (command->eat) {
         return command->eat(opt, value, command->userptr);
@@ -325,6 +314,8 @@ dessert:
                 else {
                     REJECT_POSITIONAL_NOTEATEN(state, tok.text);
                 }
+                status = EARG_FATAL;
+                goto terminate;
             default:
                 status = EARG_FATAL;
                 goto terminate;
@@ -439,14 +430,10 @@ earg_try_help(const struct earg* c) {
 
 
 int
-earg_commandchain_print(int fd, const struct earg *c) {
-    if (fd < 0) {
-        return -1;
-    }
-
+earg_commandchain_print(FILE *file, const struct earg *c) {
     if (c == NULL) {
         return -1;
     }
 
-    return cmdstack_print(fd, &c->state->cmdstack);
+    return cmdstack_print(file, &c->state->cmdstack);
 }

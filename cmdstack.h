@@ -20,9 +20,6 @@
 #define CMDSTACK_H_
 
 
-#include "config.h"
-
-
 struct cmdstack {
     const char *names[CONFIG_EARG_CMDSTACK_MAX];
     const struct earg_command *commands[CONFIG_EARG_CMDSTACK_MAX];
@@ -44,7 +41,7 @@ cmdstack_last(struct cmdstack *s);
 
 
 int
-cmdstack_print(int fd, struct cmdstack *s);
+cmdstack_print(FILE *file, struct cmdstack *s);
 
 
 #endif  // CMDSTACK_H_

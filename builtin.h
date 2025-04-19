@@ -22,11 +22,9 @@
 #include "earg.h"
 
 
-#ifdef CONFIG_EARG_USE_CLOG
 extern const struct earg_option opt_verbosity;
 extern const struct earg_option opt_verboseflag;
 extern const struct earg_option opt_quietflag;
-#endif
 extern const struct earg_option opt_version;
 extern const struct earg_option opt_help;
 extern const struct earg_option opt_usage;

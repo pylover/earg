@@ -21,6 +21,7 @@
 
 
 #include <stdbool.h>
+#include <stdio.h>
 
 
 #ifdef __clang__
@@ -53,9 +54,9 @@ enum earg_eatstatus {
 
 /* earg flags */
 enum earg_flags{
-    EARG_NO_HELP = 1,
-    EARG_NO_USAGE = 2,
-    EARG_NO_CLOG = 4,
+    EARG_NOHELP = 1,
+    EARG_NOUSAGE = 2,
+    EARG_NOELOG = 4,
 };
 
 
@@ -121,11 +122,11 @@ earg_dispose(struct earg *c);
 
 
 void
-earg_usage_print(const struct earg *c);
+earg_usage_print(FILE *file, const struct earg *c);
 
 
 void
-earg_help_print(const struct earg *c);
+earg_help_print(FILE *file, const struct earg *c);
 
 
 int
@@ -133,7 +134,7 @@ earg_try_help(const struct earg *c);
 
 
 int
-earg_commandchain_print(int fd, const struct earg *c);
+earg_commandchain_print(FILE *file, const struct earg *c);
 
 
 #endif  // EARG_H_

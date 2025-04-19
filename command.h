@@ -20,7 +20,6 @@
 #define COMMAND_H_
 
 
-#include "config.h"
 #include "earg.h"
 
 

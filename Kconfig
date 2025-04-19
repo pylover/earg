@@ -1,8 +1,4 @@
 menu "earg"
-	config EARG_USE_ELOG
-		bool "Integrate with elog"
-		default y
-
 	config EARG_OPTIONS_MAX
 		int "Maximum allowed options"
 		default 32

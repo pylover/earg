@@ -18,7 +18,6 @@
  */
 #include <stdio.h>
 
-#include "config.h"
 #include "cmdstack.h"
 
 
@@ -54,7 +53,7 @@ cmdstack_push(struct cmdstack *s, const char *name,
 
 
 int
-cmdstack_print(int fd, struct cmdstack *s) {
+cmdstack_print(FILE *file, struct cmdstack *s) {
     int i;
     int bytes = 0;
     int status;
@@ -64,7 +63,7 @@ cmdstack_print(int fd, struct cmdstack *s) {
     }
 
     for (i = 0; i < s->len; i++) {
-        status = dprintf(fd, "%s%s", i? " ": "", s->names[i]);
+        status = fprintf(file, "%s%s", i? " ": "", s->names[i]);
         if (status == -1) {
             return -1;
         }

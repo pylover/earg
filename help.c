@@ -22,11 +22,9 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "config.h"
 #include "toolbox.h"
 #include "builtin.h"
 #include "state.h"
-#include "help.h"
 
 
 #define OPT_MINGAP 4
@@ -38,13 +36,11 @@ static int
 _calculate_initial_gapsize(const struct earg *c, bool subcommand) {
     int gapsize = 8;
 
-#ifdef CONFIG_EARG_USE_CLOG
-    if ((!subcommand) && (!HASFLAG(c, EARG_NOCLOG))) {
+    if ((!subcommand) && (!HASFLAG(c, EARG_NOELOG))) {
         gapsize = MAX(gapsize, OPT_HELPLEN(&opt_verbosity) + OPT_MINGAP);
         gapsize = MAX(gapsize, OPT_HELPLEN(&opt_verboseflag) + OPT_MINGAP);
         gapsize = MAX(gapsize, OPT_HELPLEN(&opt_quietflag) + OPT_MINGAP);
     }
-#endif
 
     if (!HASFLAG(c, EARG_NOHELP)) {
         gapsize = MAX(gapsize, OPT_HELPLEN(&opt_help) + OPT_MINGAP);
@@ -63,7 +59,7 @@ _calculate_initial_gapsize(const struct earg *c, bool subcommand) {
 
 
 static void
-_print_multiline(int fd, const char *string, int indent, int linemax) {
+_print_multiline(FILE *file, const char *string, int indent, int linemax) {
     int remain;
     int linesize = linemax - indent;
     int ls;
@@ -76,13 +72,13 @@ _print_multiline(int fd, const char *string, int indent, int linemax) {
     remain = strlen(string);
     while (remain) {
         dash = false;
-        while (remain && isspace(string[0])) {
+        while (remain && isspace((int)string[0])) {
             string++;
             remain--;
         }
 
         if (remain <= linesize) {
-            dprintf(fd, "%s\n", string);
+            fprintf(file, "%s\n", string);
             remain = 0;
             break;
         }
@@ -101,34 +97,34 @@ _print_multiline(int fd, const char *string, int indent, int linemax) {
             ls--;
         }
 
-        dprintf(fd, "%.*s%s\n", ls, string, dash? "-": "");
+        fprintf(file, "%.*s%s\n", ls, string, dash? "-": "");
         remain -= ls;
         string += ls;
-        dprintf(fd, "%*s", indent, "");
+        fprintf(file, "%*s", indent, "");
     }
 }
 
 
 static void
-_print_optiongroup(int fd, const struct earg_option *opt, int gapsize) {
+_print_optiongroup(FILE *file, const struct earg_option *opt, int gapsize) {
     int rpad;
 
     if (opt->name && (!STREQ("-", opt->name))) {
         rpad = (gapsize + 8) - strlen(opt->name);
-        dprintf(fd, "\n%s%*s", opt->name, rpad, "");
+        fprintf(file, "\n%s%*s", opt->name, rpad, "");
     }
 
     if (opt->help) {
-        _print_multiline(fd, opt->help, gapsize + 8, CONFIG_EARG_HELP_LINESIZE);
+        _print_multiline(file, opt->help, gapsize + 8, CONFIG_EARG_HELP_LINESIZE);
     }
     else {
-        dprintf(fd, "\n");
+        fprintf(file, "\n");
     }
 }
 
 
 static void
-_print_subcommands(int fd, const struct earg_command *cmd) {
+_print_subcommands(FILE *file, const struct earg_command *cmd) {
     const struct earg_command **c = cmd->commands;
     const struct earg_command *s;
 
@@ -136,48 +132,48 @@ _print_subcommands(int fd, const struct earg_command *cmd) {
         return;
     }
 
-    dprintf(fd, "\nCommands:\n");
+    fprintf(file, "\nCommands:\n");
     while ((s = *c)) {
-        dprintf(fd, "  %s\n", s->name);
+        fprintf(file, "  %s\n", s->name);
         c++;
     }
 }
 
 
 static void
-_print_option(int fd, const struct earg_option *opt, int gapsize) {
+_print_option(FILE *file, const struct earg_option *opt, int gapsize) {
     int rpad = gapsize - OPT_HELPLEN(opt);
 
     if (ISCHAR(opt->key)) {
-        dprintf(fd, "  -%c%c ", opt->key, opt->name? ',': ' ');
+        fprintf(file, "  -%c%c ", opt->key, opt->name? ',': ' ');
     }
     else {
-        dprintf(fd, "      ");
+        fprintf(file, "      ");
     }
 
     if (opt->name) {
         if (opt->arg == NULL) {
-            dprintf(fd, "--%s%*s", opt->name, rpad, "");
+            fprintf(file, "--%s%*s", opt->name, rpad, "");
         }
         else {
-            dprintf(fd, "--%s=%s%*s", opt->name, opt->arg, rpad, "");
+            fprintf(file, "--%s=%s%*s", opt->name, opt->arg, rpad, "");
         }
     }
     else {
-        dprintf(fd, "  %*s", rpad, "");
+        fprintf(file, "  %*s", rpad, "");
     }
 
     if (opt->help) {
-        _print_multiline(fd, opt->help, gapsize + 8, CONFIG_EARG_HELP_LINESIZE);
+        _print_multiline(file, opt->help, gapsize + 8, CONFIG_EARG_HELP_LINESIZE);
     }
     else {
-        dprintf(fd, "\n");
+        fprintf(file, "\n");
     }
 }
 
 
 static void
-_print_options(int fd, const struct earg *c, const struct earg_command *cmd) {
+_print_options(FILE *file, const struct earg *c, const struct earg_command *cmd) {
     int gapsize;
     int i = 0;
     const struct earg_option *opt;
@@ -194,25 +190,23 @@ _print_options(int fd, const struct earg *c, const struct earg_command *cmd) {
         gapsize = MAX(gapsize, OPT_HELPLEN(opt) + OPT_MINGAP);
     }
 
-    dprintf(fd, "\nOptions:\n");
+    fprintf(file, "\nOptions:\n");
     if (!HASFLAG(c, EARG_NOHELP)) {
-        _print_option(fd, &opt_help, gapsize);
+        _print_option(file, &opt_help, gapsize);
     }
 
     if (!HASFLAG(c, EARG_NOUSAGE)) {
-        _print_option(fd, &opt_usage, gapsize);
+        _print_option(file, &opt_usage, gapsize);
     }
 
-#ifdef CONFIG_EARG_USE_CLOG
-    if ((!subcommand) && (!HASFLAG(c, EARG_NOCLOG))) {
-        _print_option(fd, &opt_verboseflag, gapsize);
-        _print_option(fd, &opt_quietflag, gapsize);
-        _print_option(fd, &opt_verbosity, gapsize);
+    if ((!subcommand) && (!HASFLAG(c, EARG_NOELOG))) {
+        _print_option(file, &opt_verboseflag, gapsize);
+        _print_option(file, &opt_quietflag, gapsize);
+        _print_option(file, &opt_verbosity, gapsize);
     }
-#endif
 
     if (!subcommand && c->version) {
-        _print_option(fd, &opt_version, gapsize);
+        _print_option(file, &opt_version, gapsize);
     }
 
     i = 0;
@@ -223,18 +217,17 @@ _print_options(int fd, const struct earg *c, const struct earg_command *cmd) {
         }
 
         if (opt->key) {
-            _print_option(fd, opt, gapsize);
+            _print_option(file, opt, gapsize);
         }
         else {
-            _print_optiongroup(fd, opt, gapsize);
+            _print_optiongroup(file, opt, gapsize);
         }
     }
 }
 
 
 void
-earg_usage_print(const struct earg *c) {
-    int fd = STDOUT_FILENO;
+earg_usage_print(FILE *file, const struct earg *c) {
     char delim[1] = {'\n'};
     char *needle;
     char *saveptr = NULL;
@@ -243,7 +236,7 @@ earg_usage_print(const struct earg *c) {
     const struct earg_command *cmd = cmdstack_last(&state->cmdstack);
 
     POUT("Usage: ");
-    cmdstack_print(fd, &state->cmdstack);
+    cmdstack_print(file, &state->cmdstack);
     POUT(" [OPTION...]");
 
     if (cmd->args == NULL) {
@@ -261,7 +254,7 @@ earg_usage_print(const struct earg *c) {
             break;
         }
         POUT("\n   or: ");
-        cmdstack_print(fd, &state->cmdstack);
+        cmdstack_print(file, &state->cmdstack);
         POUT(" [OPTION...] %s", needle);
     }
 
@@ -274,31 +267,30 @@ done:
 
 
 void
-earg_help_print(const struct earg *c) {
-    int fd = STDOUT_FILENO;
+earg_help_print(FILE *file, const struct earg *c) {
     struct earg_state *state = c->state;
     const struct earg_command *cmd = cmdstack_last(&state->cmdstack);
 
     /* usage */
-    earg_usage_print(c);
+    earg_usage_print(file, c);
 
     /* header */
     if (cmd->header) {
         POUT("\n");
-        _print_multiline(fd, cmd->header, 0, CONFIG_EARG_HELP_LINESIZE);
+        _print_multiline(file, cmd->header, 0, CONFIG_EARG_HELP_LINESIZE);
     }
 
     /* sub-commands */
     if (cmd->commands) {
-        _print_subcommands(fd, cmd);
+        _print_subcommands(file, cmd);
     }
 
     /* options */
-    _print_options(fd, c, cmd);
+    _print_options(file, c, cmd);
 
     /* footer */
     if (cmd->footer) {
         POUT("\n");
-        _print_multiline(fd, cmd->footer, 0, CONFIG_EARG_HELP_LINESIZE);
+        _print_multiline(file, cmd->footer, 0, CONFIG_EARG_HELP_LINESIZE);
     }
 }

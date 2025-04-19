@@ -18,19 +18,18 @@
  */
 #include <stdio.h>
 
-#include "config.h"
 #include "toolbox.h"
 #include "earg.h"
 #include "option.h"
 
 
 int
-option_print(int fd, const struct earg_option *opt) {
+option_print(FILE *file, const struct earg_option *opt) {
     int bytes = 0;
     int status;
 
     if ((opt->key != 0) && ISCHAR(opt->key)) {
-        status = dprintf(fd, "-%c%s", opt->key, opt->name? "/": "");
+        status = fprintf(file, "-%c%s", opt->key, opt->name? "/": "");
         if (status == -1) {
             return -1;
         }
@@ -39,7 +38,7 @@ option_print(int fd, const struct earg_option *opt) {
     }
 
     if (opt->name) {
-        status = dprintf(fd, "--%s", opt->name);
+        status = fprintf(file, "--%s", opt->name);
         if (status == -1) {
             return -1;
         }

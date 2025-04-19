@@ -27,7 +27,7 @@
 
 
 int
-option_print(int fd, const struct earg_option *opt);
+option_print(FILE *file, const struct earg_option *opt);
 
 
 #endif  // OPTION_H_

@@ -20,12 +20,15 @@
 #define TOOLBOX_H_
 
 
+#include <stdio.h>
+
+
 #define HASFLAG(o, f) ((o)->flags & (f))
 
 
 /* stdout & stderr */
-#define PERR(...) dprintf(STDERR_FILENO, __VA_ARGS__)
-#define POUT(...) dprintf(STDOUT_FILENO, __VA_ARGS__)
+#define PERR(...) fprintf(stderr, __VA_ARGS__)
+#define POUT(...) fprintf(stdout, __VA_ARGS__)
 
 
 /* numeric */

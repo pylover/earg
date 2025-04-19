@@ -19,7 +19,6 @@
 #include <limits.h>
 #include <stddef.h>
 
-#include "config.h"
 #include "builtin.h"
 
 
@@ -27,7 +26,6 @@
 #define EARG_OPTKEY_VERSION (INT_MIN + 1)
 
 
-#ifdef CONFIG_EARG_USE_CLOG
 #define EARG_OPTKEY_VERBOSITY (INT_MIN + 2)
 const struct earg_option opt_verbosity = {
     .name = "verbosity",
@@ -45,7 +43,7 @@ const struct earg_option opt_verboseflag = {
     .key = 'v',
     .arg = NULL,
     .flags = EARG_OPTION_MULTIPLE,
-    .help = "Increase the clog_verbosity on each occurance, e.g. -vvv"
+    .help = "Increase the elog_verbosity on each occurance, e.g. -vvv"
 };
 
 
@@ -54,9 +52,8 @@ const struct earg_option opt_quietflag = {
     .key = 'q',
     .arg = NULL,
     .flags = EARG_OPTION_MULTIPLE,
-    .help = "Decrease the clog_verbosity on each occurance, e.g. -qq"
+    .help = "Decrease the elog_verbosity on each occurance, e.g. -qq"
 };
-#endif
 
 
 const struct earg_option opt_version = {

@@ -21,7 +21,6 @@
 #include <errno.h>
 #include <string.h>
 
-#include "config.h"
 #include "option.h"
 #include "tokenizer.h"
 

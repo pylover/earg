@@ -21,7 +21,6 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "config.h"
 #include "toolbox.h"
 #include "option.h"
 #include "optiondb.h"
@@ -83,7 +82,7 @@ optiondb_insert(struct optiondb *db, const struct earg_option *opt,
     /* check existance */
     if (optiondb_exists(db, opt)) {
         PERR("option duplicated -- '");
-        option_print(STDERR_FILENO, opt);
+        option_print(stderr, opt);
         PERR("'\n");
         return -1;
     }
