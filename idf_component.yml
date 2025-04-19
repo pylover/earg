@@ -1,0 +1,4 @@
+version: "0.1.0"
+description: "esp32 command line argument parser"
+url: "https://github.com/pylover/earg"
+license: "MIT"

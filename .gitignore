@@ -1,0 +1,8 @@
+*.gcda
+*.gcno
+.*.sw[op]
+*.o
+
+# Projedct specific
+build
+tests/*.gdb

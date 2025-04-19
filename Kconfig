@@ -1,0 +1,18 @@
+menu "earg"
+	config EARG_USE_ELOG
+		bool "Integrate with elog"
+		default y
+
+	config EARG_OPTIONS_MAX
+		int "Maximum allowed options"
+		default 32
+
+	config EARG_CMDSTACK_MAX
+		int "Maximum allowed command chain length"
+		default 8
+	
+	config EARG_HELP_LINESIZE
+		int "Maximum linesize fo rhelp messages"
+		default 79
+
+endmenu
